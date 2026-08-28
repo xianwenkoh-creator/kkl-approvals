@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KKL Approvals</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%232C4A87'/%3E%3Cpath d='M8 17l5 5 11-12' stroke='%23fff' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#F5F7F9; --card:#FFFFFF; --sunk:#EDF0F4;
+  --ink:#131A24; --ink2:#3D4854; --ink3:#6B7686; --ink4:#98A2AF;
+  --rule:#D7DDE5; --rule2:#C2CAD5;
+  --stamp:#2C4A87; --stampsoft:#E4EAF5;
+  --ok:#2C6B4F; --oksoft:#DFEDE6; --warn:#93670F; --warnsoft:#F5EAD3;
+  --bad:#A33A2C; --badsoft:#F6E2DE;
+  --shadow:0 1px 2px rgba(19,26,36,.06),0 8px 24px -12px rgba(19,26,36,.18);
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0F141B; --card:#161D26; --sunk:#1C242F;
+  --ink:#E8ECF1; --ink2:#BFC8D4; --ink3:#8F9AA8; --ink4:#6B7684;
+  --rule:#2A333F; --rule2:#3A4552;
+  --stamp:#7EA3E0; --stampsoft:#1B2739;
+  --ok:#6FC49A; --oksoft:#152A21; --warn:#D9AC55; --warnsoft:#2B2313;
+  --bad:#E08776; --badsoft:#2E1A16;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.7);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--stamp)}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--rule2);border-radius:4px;padding:8px 10px;width:100%}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--stamp);outline-offset:1px}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin:14px 0 4px}
+.small{font-size:12.5px;color:var(--ink3)}
+.mono{font-family:Consolas,ui-monospace,monospace;font-size:.9em}
+
+/* top bar */
+#bar{position:sticky;top:0;z-index:50;background:var(--stamp);color:#fff;display:flex;align-items:center;gap:14px;padding:0 14px;height:48px;box-shadow:var(--shadow)}
+#bar .logo{font-weight:700;letter-spacing:.02em;white-space:nowrap}
+#bar nav{display:flex;gap:2px;overflow-x:auto;flex:1}
+#bar nav a{color:#fff;text-decoration:none;padding:6px 11px;border-radius:4px;font-size:13.5px;opacity:.85;white-space:nowrap}
+#bar nav a.on{background:rgba(255,255,255,.16);opacity:1;font-weight:600}
+#bar .who{font-size:12.5px;opacity:.9;white-space:nowrap}
+#bar .out{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:4px;padding:4px 9px;font-size:12.5px}
+#badge{background:#fff;color:var(--stamp);font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px;margin-left:4px}
+
+main{max-width:960px;margin:0 auto;padding:22px 14px 90px}
+h1{font-size:22px;margin:6px 0 16px;letter-spacing:-.01em}
+h2{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--rule2);padding-bottom:6px;margin:26px 0 12px}
+
+.card{background:var(--card);border:1px solid var(--rule2);border-radius:4px;box-shadow:var(--shadow);padding:16px;margin:0 0 14px}
+.rowline{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+
+.pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:2px;border:1px solid;vertical-align:middle}
+.p-ok{background:var(--oksoft);color:var(--ok);border-color:var(--ok)}
+.p-warn{background:var(--warnsoft);color:var(--warn);border-color:var(--warn)}
+.p-bad{background:var(--badsoft);color:var(--bad);border-color:var(--bad)}
+.p-info{background:var(--stampsoft);color:var(--stamp);border-color:var(--stamp)}
+.p-mute{background:var(--sunk);color:var(--ink3);border-color:var(--rule2)}
+
+.btn{background:var(--stamp);color:#fff;border:0;border-radius:4px;padding:9px 16px;font-weight:600}
+.btn.ok{background:var(--ok)} .btn.bad{background:var(--bad)} .btn.warn{background:var(--warn)}
+.btn.ghost{background:var(--sunk);color:var(--ink2);border:1px solid var(--rule2)}
+.btn:disabled{opacity:.5;cursor:default}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+.qcard{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--rule2);border-left:3px solid var(--stamp);border-radius:4px;box-shadow:var(--shadow);padding:13px 16px;margin-bottom:10px}
+.qcard:hover{border-color:var(--stamp)}
+.qcard .amt{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.qcard .t{font-weight:600;margin:2px 0}
+
+.ladder{list-style:none;margin:8px 0;padding:0}
+.ladder li{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--rule);align-items:center;flex-wrap:wrap}
+.ladder li:last-child{border-bottom:0}
+.stgn{width:26px;height:26px;border-radius:2px;border:1.5px solid var(--stamp);background:var(--stampsoft);color:var(--stamp);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);background:var(--sunk);padding:8px 10px;border-bottom:1px solid var(--rule2)}
+td{padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tw{overflow-x:auto;border:1px solid var(--rule2);border-radius:4px;background:var(--card)}
+
+.note{border-left:3px solid var(--warn);background:var(--warnsoft);padding:10px 14px;margin:12px 0;border-radius:0 3px 3px 0;font-size:13.5px}
+.note.bad{border-left-color:var(--bad);background:var(--badsoft)}
+.note.good{border-left-color:var(--ok);background:var(--oksoft)}
+
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:4px;font-size:13.5px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw}
+#toast.on{opacity:1}
+.center{max-width:400px;margin:9vh auto 0}
+.empty{text-align:center;color:var(--ink4);padding:36px 10px;font-size:14px}
+.filedrop{border:1.5px dashed var(--rule2);border-radius:4px;padding:18px;text-align:center;color:var(--ink3);cursor:pointer;background:var(--sunk)}
+.filedrop.on{border-color:var(--stamp);color:var(--stamp)}
+canvas.sig{background:#fff;border:1px solid var(--rule2);border-radius:4px;touch-action:none;width:100%;max-width:420px;height:150px}
+.qrow{display:grid;grid-template-columns:2fr 1fr 2fr 34px;gap:6px;margin-bottom:6px}
+textarea.json{font-family:Consolas,ui-monospace,monospace;font-size:12px;min-height:260px}
+.auditrow{font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--rule)}
+.auditrow:last-child{border-bottom:0}
+@media print{#bar,.btnrow{display:none}}
+</style>
+</head>
+<body>
+<div id="bar">
+  <span class="logo">KKL&nbsp;Approvals</span>
+  <nav id="nav"></nav>
+  <span class="who" id="who"></span>
+  <button class="out" id="signout" style="display:none">Sign out</button>
+</div>
+<main id="app"><div class="empty">Loading…</div></main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+"use strict";
+/* ================= config =================
+   Fill DEFAULT_SB after the Supabase project is created, or configure a
+   device once via localStorage key kklapv-sb = {"url":"...","anon":"..."} */
+const DEFAULT_SB = { url: "", anon: "" };
+let SB = DEFAULT_SB;
+try { const o = JSON.parse(localStorage.getItem("kklapv-sb") || "null"); if (o && o.url) SB = o; } catch (e) {}
+
+const $ = (s, el) => (el || document).querySelector(s);
+const app = $("#app");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt$ = (n, c) => (c || "SGD") + " " + Number(n || 0).toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtD = (iso) => iso ? new Date(iso).toLocaleString("en-SG", { hour12: false }) : "—";
+function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 3200); }
+async function sha256(buf) { const h = await crypto.subtle.digest("SHA-256", buf); return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+
+let sb = null, me = null, roster = [], settings = {};
+const STATUS_PILL = { DRAFT: "p-mute", PENDING: "p-info", RETURNED: "p-warn", APPROVED: "p-ok", REJECTED: "p-bad", WITHDRAWN: "p-mute" };
+const TYPE_NAME = { award: "Supplier / subcon award", invoice: "Supplier invoice" };
+const who = (id) => roster.find((p) => p.id === id) || {};
+const whoName = (id) => who(id).display_name || who(id).email || "—";
+
+/* ================= boot ================= */
+async function boot() {
+  if (!SB.url || !SB.anon) return renderSetup();
+  sb = supabase.createClient(SB.url, SB.anon);
+
+  // invite / recovery links arrive as #access_token=...&type=invite|recovery
+  const h = location.hash;
+  if (/access_token=/.test(h) && /type=(invite|recovery|signup)/.test(h)) {
+    const p = new URLSearchParams(h.replace(/^#\/?/, ""));
+    const { error } = await sb.auth.setSession({ access_token: p.get("access_token"), refresh_token: p.get("refresh_token") });
+    history.replaceState(null, "", location.pathname);
+    if (!error) return renderSetPassword();
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    // the verification page is public by design — QR holders have no account
+    if ((location.hash || "").startsWith("#/verify")) {
+      const q = new URLSearchParams((location.hash.split("?")[1]) || "");
+      return viewVerify(q);
+    }
+    return renderSignin();
+  }
+  await loadContext();
+  window.addEventListener("hashchange", route);
+  window.addEventListener("focus", () => { if (location.hash.startsWith("#/queue") || !location.hash) route(); });
+  route();
+}
+async function loadContext() {
+  const { data: { user } } = await sb.auth.getUser();
+  const [{ data: prof }, { data: all }, { data: st }] = await Promise.all([
+    sb.from("profiles").select("*").eq("id", user.id).single(),
+    sb.from("profiles").select("*").order("display_name"),
+    sb.from("settings").select("*"),
+  ]);
+  me = prof; roster = all || []; settings = {};
+  (st || []).forEach((r) => settings[r.key] = r.value);
+  $("#who").textContent = (me.display_name || me.email) + " · " + me.role;
+  $("#signout").style.display = "";
+  $("#signout").onclick = async () => { await sb.auth.signOut(); location.hash = ""; location.reload(); };
+  renderNav();
+}
+function renderNav() {
+  const items = [["#/queue", "My queue"], ["#/mine", "My requests"], ["#/new/award", "+ Award"], ["#/new/invoice", "+ Invoice"]];
+  if (me.role === "finance" || me.role === "admin") items.push(["#/all", "All"]);
+  if (me.role === "admin") items.push(["#/admin", "Admin"]);
+  items.push(["#/me", "Profile"], ["#/verify", "Verify"]);
+  $("#nav").innerHTML = items.map(([h, t]) => `<a href="${h}" data-h="${h}">${t}${h === "#/queue" ? '<span id="badge" style="display:none"></span>' : ""}</a>`).join("");
+  markNav();
+}
+function markNav() {
+  const cur = location.hash.split("?")[0] || "#/queue";
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", cur.startsWith(a.dataset.h)));
+}
+function route() {
+  markNav();
+  const [path, qs] = (location.hash || "#/queue").split("?");
+  const q = new URLSearchParams(qs || "");
+  if (path.startsWith("#/req/")) return viewRequest(path.slice(6));
+  if (path === "#/new/award") return viewNew("award");
+  if (path === "#/new/invoice") return viewNew("invoice");
+  if (path === "#/mine") return viewList("mine");
+  if (path === "#/all") return viewList("all");
+  if (path === "#/admin") return viewAdmin();
+  if (path === "#/me") return viewMe();
+  if (path === "#/verify") return viewVerify(q);
+  return viewQueue();
+}
+
+/* ================= auth screens ================= */
+function renderSetup() {
+  app.innerHTML = `<div class="center card"><h1>Connect</h1>
+    <p class="small">This device is not configured yet. Paste the Supabase project URL and anon key (from SETUP.md).</p>
+    <label>Project URL</label><input id="su" placeholder="https://xxxx.supabase.co">
+    <label>Anon key</label><input id="sk">
+    <div class="btnrow"><button class="btn" id="go">Save &amp; continue</button></div></div>`;
+  $("#go").onclick = () => {
+    localStorage.setItem("kklapv-sb", JSON.stringify({ url: $("#su").value.trim(), anon: $("#sk").value.trim() }));
+    location.reload();
+  };
+}
+function renderSignin() {
+  app.innerHTML = `<div class="center card"><h1>Sign in</h1>
+    <label>Email</label><input id="em" type="email" autocomplete="username">
+    <label>Password</label><input id="pw" type="password" autocomplete="current-password">
+    <div class="btnrow"><button class="btn" id="go">Sign in</button></div>
+    <p class="small">Accounts are created by invitation from an admin. Decisions require a live connection — this is deliberate.</p></div>`;
+  const go = async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value });
+    if (error) return toast(error.message);
+    await loadContext(); location.hash = "#/queue"; route();
+  };
+  $("#go").onclick = go;
+  $("#pw").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+}
+function renderSetPassword() {
+  app.innerHTML = `<div class="center card"><h1>Set your password</h1>
+    <p class="small">Welcome to KKL Approvals. Choose a password to finish setting up your account.</p>
+    <label>New password (min 8 chars)</label><input id="pw" type="password" autocomplete="new-password">
+    <div class="btnrow"><button class="btn" id="go">Save password</button></div></div>`;
+  $("#go").onclick = async () => {
+    if ($("#pw").value.length < 8) return toast("Use at least 8 characters");
+    const { error } = await sb.auth.updateUser({ password: $("#pw").value });
+    if (error) return toast(error.message);
+    await loadContext(); location.hash = "#/queue"; route();
+  };
+}
+
+/* ================= queue ================= */
+async function myQueue() {
+  const { data, error } = await sb.from("request_steps")
+    .select("*, requests!request_steps_request_id_fkey(*)")
+    .eq("actor", me.id).eq("status", "PENDING");
+  if (error) { toast(error.message); return []; }
+  return (data || []).filter((s) => s.requests && s.requests.status === "PENDING" && s.stage === s.requests.current_stage);
+}
+async function viewQueue() {
+  app.innerHTML = `<h1>My queue</h1><div id="list" class="empty">Loading…</div>`;
+  const items = await myQueue();
+  const b = $("#badge"); if (b) { b.style.display = items.length ? "" : "none"; b.textContent = items.length; }
+  if (!items.length) { $("#list").innerHTML = `<div class="empty">Nothing waiting on you. ✓</div>`; return; }
+  $("#list").innerHTML = items.map((s) => {
+    const r = s.requests;
+    return `<a class="qcard" href="#/req/${r.id}">
+      <div class="rowline"><span class="pill p-info">${esc(r.type)}</span>
+        <span class="pill ${s.step_type === "DECIDE" ? "p-warn" : "p-mute"}">${esc(s.step_type)}</span>
+        <span class="small">${esc(r.ref || "")} · stage ${s.stage}</span></div>
+      <div class="t">${esc(r.title)}</div>
+      <div class="rowline"><span class="amt">${fmt$(r.amount, r.currency)}</span>
+        <span class="small">${esc(r.supplier || "")} · ${esc(r.project || "")} · from ${esc(whoName(r.requester))}</span></div></a>`;
+  }).join("");
+}
+
+/* ================= lists ================= */
+async function viewList(kind) {
+  app.innerHTML = `<h1>${kind === "mine" ? "My requests" : "All requests"}</h1><div id="list" class="empty">Loading…</div>`;
+  let q = sb.from("requests").select("*").order("created_at", { ascending: false }).limit(200);
+  if (kind === "mine") q = q.eq("requester", me.id);
+  const { data, error } = await q;
+  if (error) return $("#list").innerHTML = `<div class="empty">${esc(error.message)}</div>`;
+  if (!data.length) return $("#list").innerHTML = `<div class="empty">No requests yet.</div>`;
+  $("#list").innerHTML = `<div class="tw"><table><thead><tr><th>Ref</th><th>Title</th><th>Amount</th><th>Status</th><th>Requester</th><th>Updated</th></tr></thead><tbody>` +
+    data.map((r) => `<tr><td><a href="#/req/${r.id}">${esc(r.ref || "draft")}</a></td>
+      <td>${esc(r.title)}<div class="small">${esc(TYPE_NAME[r.type])} · ${esc(r.supplier || "")}</div></td>
+      <td style="white-space:nowrap;font-variant-numeric:tabular-nums">${fmt$(r.amount, r.currency)}</td>
+      <td><span class="pill ${STATUS_PILL[r.status]}">${r.status}</span></td>
+      <td>${esc(whoName(r.requester))}</td><td class="small">${fmtD(r.decided_at || r.submitted_at || r.created_at)}</td></tr>`).join("") +
+    `</tbody></table></div>`;
+}
+
+/* ================= chain preview (mirrors submit_request) ================= */
+function pickBand(type, amount, budget) {
+  const m = settings.matrix || {}; const bands = (m[type] || {}).bands || [];
+  let pick = -1;
+  for (let i = 0; i < bands.length; i++) {
+    if (!("max" in bands[i]) || amount <= Number(bands[i].max)) { pick = i; break; }
+  }
+  if (pick < 0) pick = bands.length - 1;
+  const pct = Number(settings.overbudget_pct ?? 10);
+  if (type === "award" && budget > 0 && amount > budget * (1 + pct / 100) && pick < bands.length - 1) pick++;
+  return { pick, band: bands[pick], bumped: type === "award" && budget > 0 && amount > budget * (1 + pct / 100) };
+}
+function chainPreviewHtml(type, amount, budget) {
+  if (!(amount > 0)) return "";
+  const { band, bumped } = pickBand(type, amount, budget);
+  if (!band) return `<div class="note bad">No authority matrix configured for ${esc(type)} — ask an admin.</div>`;
+  const rows = (band.stages || []).map((st, i) =>
+    `<li><span class="stgn">${i + 1}</span><span class="pill p-mute">${esc(st.rule || "ALL")}</span>` +
+    (st.steps || []).map((s) => {
+      const p = roster.find((x) => (x.email || "").toLowerCase() === String(s.email || "").toLowerCase());
+      return `<span>${esc(p ? (p.display_name || p.email) : s.email)}${p ? "" : ' <span class="pill p-bad">no account</span>'}</span>`;
+    }).join(" · ") + `</li>`).join("");
+  return `<h2>This will route to</h2>${bumped ? '<div class="note">Over budget allowance — routed one band up.</div>' : ""}<ol class="ladder">${rows}</ol>`;
+}
+
+/* ================= new request ================= */
+let pendingFiles = [];
+async function viewNew(type) {
+  pendingFiles = [];
+  let awards = [];
+  if (type === "invoice") {
+    const { data } = await sb.from("requests").select("id,ref,title,supplier,amount,currency").eq("type", "award").eq("status", "APPROVED").order("decided_at", { ascending: false });
+    awards = data || [];
+  }
+  app.innerHTML = `<h1>New ${TYPE_NAME[type].toLowerCase()}</h1><div class="card"><div class="grid2">
+    ${type === "invoice" ? `<div style="grid-column:1/-1"><label>Approved award this invoice draws on</label>
+      <select id="f_award"><option value="">— select the award —</option>${awards.map((a) => `<option value="${a.id}">${esc(a.ref)} · ${esc(a.title)} · ${fmt$(a.amount, a.currency)}</option>`).join("")}</select>
+      <div id="exposure"></div></div>` : ""}
+    <div style="grid-column:1/-1"><label>Title</label><input id="f_title" placeholder="${type === "award" ? "e.g. D15426 — Tree felling — award to …" : "e.g. INV-260846 — SG Wireman — May works"}"></div>
+    <div><label>Project</label><input id="f_project"></div>
+    <div><label>Supplier / subcontractor</label><input id="f_supplier"></div>
+    <div><label>Amount (SGD)</label><input id="f_amount" type="number" step="0.01" min="0"></div>
+    ${type === "award"
+      ? `<div><label>QS budget allowance (SGD)</label><input id="f_budget" type="number" step="0.01" min="0"></div>
+         <div><label>Payment terms</label><input id="f_terms" placeholder="e.g. 30 days"></div>
+         <div><label>Cost code</label><input id="f_cost"></div>
+         <div style="grid-column:1/-1"><label>Scope</label><textarea id="f_scope" rows="3"></textarea></div>
+         <div style="grid-column:1/-1"><label>Quotes received</label><div id="quotes"></div>
+           <button class="btn ghost" id="addq" type="button">+ quote</button></div>`
+      : `<div><label>Invoice number</label><input id="f_invno"></div>
+         <div style="grid-column:1/-1;margin-top:12px"><label style="display:inline">
+           <input type="checkbox" id="f_workdone" style="width:auto;margin-right:8px">Work / delivery confirmed on site</label></div>`}
+    <div style="grid-column:1/-1"><label>Documents (the quote / invoice PDF and supports)</label>
+      <div class="filedrop" id="drop">Drop files here or click — hashed on this device before upload</div>
+      <input type="file" id="fpick" multiple style="display:none"><div id="flist"></div></div>
+  </div>
+  <div id="preview"></div>
+  <div class="btnrow"><button class="btn" id="submit">Submit for approval</button>
+    <button class="btn ghost" id="draft">Save as draft</button></div></div>`;
+
+  const drop = $("#drop"), fpick = $("#fpick");
+  drop.onclick = () => fpick.click();
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("on"); };
+  drop.ondragleave = () => drop.classList.remove("on");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("on"); addFiles(e.dataTransfer.files); };
+  fpick.onchange = () => addFiles(fpick.files);
+  async function addFiles(fl) {
+    for (const f of fl) {
+      const buf = await f.arrayBuffer();
+      pendingFiles.push({ file: f, sha256: await sha256(buf) });
+    }
+    $("#flist").innerHTML = pendingFiles.map((p, i) =>
+      `<div class="rowline small" style="margin-top:6px"><span>📄 ${esc(p.file.name)} (${Math.round(p.file.size / 1024)} KB)</span>
+       <span class="mono">${p.sha256.slice(0, 12)}…</span>
+       <a href="#" data-rm="${i}">remove</a></div>`).join("");
+    document.querySelectorAll("[data-rm]").forEach((a) => a.onclick = (e) => { e.preventDefault(); pendingFiles.splice(+a.dataset.rm, 1); addFiles([]); });
+  }
+  if (type === "award") {
+    const addQ = () => {
+      const d = document.createElement("div"); d.className = "qrow";
+      d.innerHTML = `<input placeholder="Supplier"><input type="number" step="0.01" placeholder="Amount"><input placeholder="Note"><button class="btn ghost" type="button">×</button>`;
+      d.querySelector("button").onclick = () => d.remove();
+      $("#quotes").appendChild(d);
+    };
+    $("#addq").onclick = addQ; addQ(); addQ();
+  }
+  const refresh = () => { $("#preview").innerHTML = chainPreviewHtml(type, Number($("#f_amount").value || 0), Number(($("#f_budget") || {}).value || 0)); };
+  $("#f_amount").oninput = refresh;
+  if ($("#f_budget")) $("#f_budget").oninput = refresh;
+  if ($("#f_award")) $("#f_award").onchange = async () => {
+    const id = $("#f_award").value; if (!id) return $("#exposure").innerHTML = "";
+    const a = awards.find((x) => x.id === id);
+    if (a && !$("#f_supplier").value) $("#f_supplier").value = a.supplier || "";
+    const { data, error } = await sb.rpc("award_exposure", { p_award: id });
+    if (!error && data) $("#exposure").innerHTML =
+      `<div class="note good" style="margin-top:8px">Award ${fmt$(data.award)} · already approved invoices ${fmt$(data.invoiced_approved)} · pending ${fmt$(data.invoiced_pending)}</div>`;
+  };
+
+  async function save(submit) {
+    const amount = Number($("#f_amount").value || 0);
+    if (!$("#f_title").value.trim()) return toast("Give it a title");
+    if (!(amount > 0)) return toast("Enter the amount");
+    if (submit && !pendingFiles.length) return toast("Attach at least one document");
+    if (type === "invoice" && submit && !$("#f_award").value) return toast("Select the approved award");
+    const form = type === "award"
+      ? { budget: $("#f_budget").value || null, terms: $("#f_terms").value, cost_code: $("#f_cost").value, scope: $("#f_scope").value,
+          quotes: [...document.querySelectorAll("#quotes .qrow")].map((d) => { const i = d.querySelectorAll("input"); return { supplier: i[0].value, amount: i[1].value, note: i[2].value }; }).filter((x) => x.supplier || x.amount) }
+      : { invoice_no: $("#f_invno").value, work_done: $("#f_workdone").checked };
+    const row = { type, title: $("#f_title").value.trim(), project: $("#f_project").value, supplier: $("#f_supplier").value,
+                  amount, form, requester: me.id, award_id: type === "invoice" ? ($("#f_award").value || null) : null };
+    const { data: req, error } = await sb.from("requests").insert(row).select().single();
+    if (error) return toast(error.message);
+    for (const p of pendingFiles) {
+      const path = `req/${req.id}/${crypto.randomUUID()}-${p.file.name.replace(/[^\w.\-]+/g, "_")}`;
+      const up = await sb.storage.from("docs").upload(path, p.file, { contentType: p.file.type });
+      if (up.error) return toast("Upload failed: " + up.error.message);
+      const ins = await sb.from("documents").insert({ request_id: req.id, name: p.file.name, mime: p.file.type, size: p.file.size, sha256: p.sha256, storage_path: path, uploaded_by: me.id });
+      if (ins.error) return toast(ins.error.message);
+    }
+    if (submit) {
+      const { error: se } = await sb.rpc("submit_request", { p_id: req.id });
+      if (se) { toast(se.message); location.hash = "#/req/" + req.id; return; }
+      toast("Submitted ✓");
+    } else toast("Draft saved");
+    location.hash = "#/req/" + req.id;
+  }
+  $("#submit").onclick = () => save(true);
+  $("#draft").onclick = () => save(false);
+}
+
+/* ================= request detail ================= */
+async function viewRequest(id) {
+  app.innerHTML = `<div class="empty">Loading…</div>`;
+  const [{ data: r, error }, { data: steps }, { data: decisions }, { data: docs }] = await Promise.all([
+    sb.from("requests").select("*").eq("id", id).single(),
+    sb.from("request_steps").select("*").eq("request_id", id).order("stage").order("created_at"),
+    sb.from("decisions").select("*").eq("request_id", id).order("created_at"),
+    sb.from("documents").select("*").eq("request_id", id).order("created_at"),
+  ]);
+  if (error || !r) return app.innerHTML = `<div class="empty">Not found or no access.</div>`;
+  const { data: audit } = await sb.rpc("request_audit", { p_request: id });
+  let exposure = null;
+  if (r.type === "invoice" && r.award_id) {
+    const { data } = await sb.rpc("award_exposure", { p_award: r.award_id }); exposure = data;
+  }
+  const mySteps = (steps || []).filter((s) => s.actor === me.id && s.status === "PENDING" && s.stage === r.current_stage && r.status === "PENDING");
+  const stages = [...new Set((steps || []).filter((s) => s.status !== "VOID" || s.acted_at).map((s) => s.stage))].sort((a, b) => a - b);
+  const decOf = (sid) => (decisions || []).filter((d) => d.step_id === sid).slice(-1)[0];
+
+  const stepPill = (s) => {
+    const map = { PENDING: s.stage === r.current_stage && r.status === "PENDING" ? ["p-warn", "waiting"] : ["p-mute", "queued"],
+      APPROVED: ["p-ok", "approved"], REJECTED: ["p-bad", "rejected"], RETURNED: ["p-warn", "returned"],
+      COMMENTED: ["p-ok", "reviewed"], ACKED: ["p-ok", "acknowledged"], VOID: ["p-mute", "—"] };
+    const [c, t] = map[s.status] || ["p-mute", s.status];
+    return `<span class="pill ${c}">${t}</span>`;
+  };
+
+  let overrunNote = "";
+  if (exposure && r.status === "PENDING") {
+    const total = Number(exposure.invoiced_approved) + Number(r.amount);
+    if (total > Number(exposure.award)) {
+      const pct = ((total / Number(exposure.award) - 1) * 100).toFixed(1);
+      overrunNote = `<div class="note bad"><b>Overrun:</b> this invoice takes cumulative approved payments to ${fmt$(total)} against an approved award of ${fmt$(exposure.award)} — ${pct}% over.</div>`;
+    } else {
+      overrunNote = `<div class="note good">Within award: ${fmt$(Number(exposure.invoiced_approved) + Number(r.amount))} of ${fmt$(exposure.award)} after this invoice.</div>`;
+    }
+  }
+
+  app.innerHTML = `
+  <div class="rowline"><a href="#/queue">← back</a></div>
+  <h1>${esc(r.ref || "Draft")} · ${esc(r.title)}</h1>
+  <div class="card"><div class="rowline">
+    <span class="pill ${STATUS_PILL[r.status]}">${r.status}</span>
+    <span class="pill p-info">${esc(TYPE_NAME[r.type])}</span>
+    <span class="amt" style="font-size:21px;font-weight:700">${fmt$(r.amount, r.currency)}</span></div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="small"><b>Project:</b> ${esc(r.project || "—")}</div>
+      <div class="small"><b>Supplier:</b> ${esc(r.supplier || "—")}</div>
+      <div class="small"><b>Requested by:</b> ${esc(whoName(r.requester))}</div>
+      <div class="small"><b>Submitted:</b> ${fmtD(r.submitted_at)}</div>
+      ${r.type === "award" && r.form.budget ? `<div class="small"><b>Budget allowance:</b> ${fmt$(r.form.budget)}</div>
+        <div class="small"><b>Variance:</b> ${(((r.amount - r.form.budget) / r.form.budget) * 100).toFixed(1)}%</div>` : ""}
+      ${r.form.terms ? `<div class="small"><b>Terms:</b> ${esc(r.form.terms)}</div>` : ""}
+      ${r.form.cost_code ? `<div class="small"><b>Cost code:</b> ${esc(r.form.cost_code)}</div>` : ""}
+      ${r.form.invoice_no ? `<div class="small"><b>Invoice no.:</b> ${esc(r.form.invoice_no)}</div>` : ""}
+      ${r.type === "invoice" ? `<div class="small"><b>Work confirmed:</b> ${r.form.work_done ? "yes" : "NO"}</div>` : ""}
+    </div>
+    ${r.form.scope ? `<p class="small" style="margin-top:10px"><b>Scope:</b> ${esc(r.form.scope)}</p>` : ""}
+    ${(r.form.quotes || []).length ? `<h2>Quotes received</h2><div class="tw"><table><thead><tr><th>Supplier</th><th>Amount</th><th>Note</th></tr></thead><tbody>${r.form.quotes.map((q) => `<tr><td>${esc(q.supplier)}</td><td style="font-variant-numeric:tabular-nums">${q.amount ? fmt$(q.amount) : "—"}</td><td>${esc(q.note)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+  </div>
+  ${overrunNote}
+  <div id="actions"></div>
+  <h2>Approval chain</h2><div class="card"><ol class="ladder" id="chain">
+    ${stages.length ? stages.map((sg) => (steps || []).filter((s) => s.stage === sg && (s.status !== "VOID" || s.acted_at)).map((s, i) =>
+      `<li>${i === 0 ? `<span class="stgn">${sg}</span>` : `<span class="stgn" style="visibility:hidden">·</span>`}
+        <span>${esc(whoName(s.actor))} <span class="small">${esc(who(s.actor).title || "")}</span></span>
+        <span class="pill p-mute">${esc(s.step_type)}${s.rule !== "ALL" && s.step_type === "DECIDE" ? " · " + esc(s.rule) : ""}</span>
+        ${stepPill(s)}
+        ${decOf(s.id) ? `<span class="small">${fmtD(decOf(s.id).created_at)}${decOf(s.id).comment ? " · “" + esc(decOf(s.id).comment) + "”" : ""}</span>` : ""}</li>`
+    ).join("")).join("") : `<li class="small">No chain yet — submit to build it from the authority matrix.</li>`}
+  </ol></div>
+  <h2>Documents</h2><div class="card" id="docs">
+    ${(docs || []).length ? (docs || []).map((d) => `<div class="rowline" style="padding:5px 0">
+      <a href="#" data-open="${esc(d.storage_path)}">📄 ${esc(d.name)}</a>
+      <span class="small mono">${d.sha256.slice(0, 16)}…</span>
+      <span class="small">${fmtD(d.created_at)}</span></div>`).join("") : `<div class="small">None yet.</div>`}
+    ${(r.requester === me.id && ["DRAFT", "RETURNED", "PENDING"].includes(r.status)) ? `<div class="btnrow"><button class="btn ghost" id="adddoc">+ add document</button><input type="file" id="adddocf" multiple style="display:none"></div>
+      ${r.status === "PENDING" ? `<p class="small">Adding a document to a pending request reopens the stages that already approved — they approved a different version.</p>` : ""}` : ""}
+    ${r.sealed_path ? `<div class="note good" style="margin-top:10px"><b>Sealed PDF ready.</b> <a href="#" id="opensealed">Download SEALED-${esc(r.ref)}.pdf</a><br><span class="small mono">SHA-256 ${esc(r.sealed_hash)}</span></div>` : ""}
+  </div>
+  <h2>Audit trail</h2><div class="card">${(audit || []).map((a) =>
+    `<div class="auditrow"><b>${esc(a.event)}</b> · ${esc(whoName(a.actor))} · ${fmtD(a.at)}
+     <span class="small mono">#${a.seq} ${String(a.hash).slice(0, 12)}…</span></div>`).join("") || '<div class="small">—</div>'}</div>`;
+
+  document.querySelectorAll("[data-open]").forEach((a) => a.onclick = async (e) => {
+    e.preventDefault();
+    const { data, error } = await sb.storage.from("docs").createSignedUrl(a.dataset.open, 600);
+    if (error) return toast(error.message);
+    window.open(data.signedUrl, "_blank");
+  });
+  if ($("#opensealed")) $("#opensealed").onclick = async (e) => {
+    e.preventDefault();
+    const { data, error } = await sb.storage.from("sealed").createSignedUrl(r.sealed_path, 600);
+    if (error) return toast(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
+  if ($("#adddoc")) {
+    $("#adddoc").onclick = () => $("#adddocf").click();
+    $("#adddocf").onchange = async () => {
+      for (const f of $("#adddocf").files) {
+        const buf = await f.arrayBuffer(); const hash = await sha256(buf);
+        const path = `req/${r.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
+        const up = await sb.storage.from("docs").upload(path, f, { contentType: f.type });
+        if (up.error) return toast(up.error.message);
+        const ins = await sb.from("documents").insert({ request_id: r.id, name: f.name, mime: f.type, size: f.size, sha256: hash, storage_path: path, uploaded_by: me.id });
+        if (ins.error) return toast(ins.error.message);
+      }
+      toast("Document added"); viewRequest(id);
+    };
+  }
+
+  /* action box */
+  const act = $("#actions");
+  if (mySteps.length) {
+    const s = mySteps[0];
+    act.innerHTML = `<div class="card" style="border-left:3px solid var(--warn)">
+      <h2 style="margin-top:0">Your ${s.step_type === "DECIDE" ? "decision" : s.step_type.toLowerCase()}</h2>
+      <label>Comment ${s.step_type === "REVIEW" ? "(required)" : "(optional; required to reject or return)"}</label>
+      <textarea id="cmt" rows="2"></textarea>
+      <div class="btnrow">${s.step_type === "DECIDE"
+        ? `<button class="btn ok" data-act="APPROVE">Approve</button>
+           <button class="btn warn" data-act="RETURN">Return for changes</button>
+           <button class="btn bad" data-act="REJECT">Reject</button>`
+        : s.step_type === "REVIEW" ? `<button class="btn" data-act="COMMENT">Submit review</button>`
+        : `<button class="btn" data-act="ACK">Acknowledge</button>`}</div></div>`;
+    act.querySelectorAll("[data-act]").forEach((b) => b.onclick = async () => {
+      const action = b.dataset.act, comment = $("#cmt").value.trim();
+      if ((action === "REJECT" || action === "RETURN" || action === "COMMENT") && !comment)
+        return toast("A comment is required for that");
+      b.disabled = true;
+      const { error } = await sb.from("decisions").insert({ step_id: s.id, request_id: r.id, action, comment: comment || null });
+      if (error) { b.disabled = false; return toast(error.message); }
+      toast(action === "APPROVE" ? "Approved ✓" : action.charAt(0) + action.slice(1).toLowerCase() + "ed");
+      const { data: r2 } = await sb.from("requests").select("status,sealed_hash").eq("id", r.id).single();
+      if (r2 && r2.status === "APPROVED" && !r2.sealed_hash) await sealNow(r.id);
+      viewRequest(id);
+    });
+  } else if (r.requester === me.id && ["DRAFT", "RETURNED"].includes(r.status)) {
+    act.innerHTML = `<div class="card"><h2 style="margin-top:0">${r.status === "RETURNED" ? "Returned to you — edit and resubmit" : "Draft"}</h2>
+      <div class="grid2">
+        <div style="grid-column:1/-1"><label>Title</label><input id="e_title" value="${esc(r.title)}"></div>
+        <div><label>Amount (SGD)</label><input id="e_amount" type="number" step="0.01" value="${r.amount}"></div>
+        <div><label>Supplier</label><input id="e_supplier" value="${esc(r.supplier || "")}"></div>
+      </div>
+      <div class="btnrow"><button class="btn" id="dosubmit">Submit for approval</button>
+        <button class="btn ghost" id="dosave">Save changes</button>
+        ${r.status === "RETURNED" ? `<button class="btn ghost" id="dowithdraw">Withdraw</button>` : ""}</div></div>`;
+    const patch = async () => {
+      const { error } = await sb.from("requests").update({ title: $("#e_title").value, amount: Number($("#e_amount").value || 0), supplier: $("#e_supplier").value }).eq("id", r.id);
+      if (error) { toast(error.message); return false; } return true;
+    };
+    $("#dosave").onclick = async () => { if (await patch()) { toast("Saved"); viewRequest(id); } };
+    $("#dosubmit").onclick = async () => {
+      if (!await patch()) return;
+      const { error } = await sb.rpc("submit_request", { p_id: r.id });
+      if (error) return toast(error.message);
+      toast("Submitted ✓"); viewRequest(id);
+    };
+    if ($("#dowithdraw")) $("#dowithdraw").onclick = async () => {
+      const { error } = await sb.rpc("withdraw_request", { p_id: r.id });
+      if (error) return toast(error.message); toast("Withdrawn"); viewRequest(id);
+    };
+  } else if (r.requester === me.id && r.status === "PENDING") {
+    act.innerHTML = `<div class="card"><div class="rowline"><span class="small">Waiting on stage ${r.current_stage}.</span>
+      <button class="btn ghost" id="dowithdraw">Withdraw request</button></div></div>`;
+    $("#dowithdraw").onclick = async () => {
+      if (!confirm("Withdraw this request?")) return;
+      const { error } = await sb.rpc("withdraw_request", { p_id: r.id });
+      if (error) return toast(error.message); toast("Withdrawn"); viewRequest(id);
+    };
+  } else if (r.status === "APPROVED" && !r.sealed_hash) {
+    act.innerHTML = `<div class="card"><div class="rowline"><span class="small">Approved but not sealed yet.</span>
+      <button class="btn" id="doseal">Generate sealed PDF</button></div></div>`;
+    $("#doseal").onclick = async () => { await sealNow(r.id); viewRequest(id); };
+  }
+}
+async function sealNow(reqId) {
+  toast("Sealing PDF…");
+  const { data, error } = await sb.functions.invoke("seal", { body: { request_id: reqId } });
+  if (error || (data && data.error)) toast("Seal failed: " + (error?.message || data.error));
+  else toast("Sealed ✓ — certificate page appended");
+}
+
+/* ================= profile / signature ================= */
+async function viewMe() {
+  app.innerHTML = `<h1>Profile</h1><div class="card">
+    <label>Display name</label><input id="p_name" value="${esc(me.display_name || "")}">
+    <label>Title (appears under your signature)</label><input id="p_title" value="${esc(me.title || "")}">
+    <div class="btnrow"><button class="btn" id="psave">Save</button></div></div>
+  <h2>Signature</h2><div class="card">
+    <p class="small">Draw once; it is stored privately and only ever placed onto documents server-side at sealing. Your browser never gets a reusable copy back.</p>
+    <canvas class="sig" id="sig" width="840" height="300"></canvas>
+    <div class="btnrow"><button class="btn" id="ssave">Save signature</button>
+      <button class="btn ghost" id="sclear">Clear</button>
+      ${me.signature_path ? '<span class="pill p-ok" style="align-self:center">signature on file</span>' : '<span class="pill p-warn" style="align-self:center">none on file</span>'}</div></div>`;
+  $("#psave").onclick = async () => {
+    const { error } = await sb.from("profiles").update({ display_name: $("#p_name").value, title: $("#p_title").value }).eq("id", me.id);
+    if (error) return toast(error.message);
+    toast("Saved"); await loadContext();
+  };
+  const cv = $("#sig"), cx = cv.getContext("2d");
+  cx.lineWidth = 4; cx.lineCap = "round"; cx.strokeStyle = "#1a2a52";
+  let drawing = false, drew = false;
+  const pos = (e) => { const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e;
+    return [(t.clientX - r.left) * cv.width / r.width, (t.clientY - r.top) * cv.height / r.height]; };
+  const down = (e) => { drawing = true; drew = true; const [x, y] = pos(e); cx.beginPath(); cx.moveTo(x, y); e.preventDefault(); };
+  const move = (e) => { if (!drawing) return; const [x, y] = pos(e); cx.lineTo(x, y); cx.stroke(); e.preventDefault(); };
+  cv.onmousedown = down; cv.onmousemove = move; window.addEventListener("mouseup", () => drawing = false);
+  cv.ontouchstart = down; cv.ontouchmove = move; cv.ontouchend = () => drawing = false;
+  $("#sclear").onclick = () => { cx.clearRect(0, 0, cv.width, cv.height); drew = false; };
+  $("#ssave").onclick = async () => {
+    if (!drew) return toast("Draw your signature first");
+    const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
+    const path = `sig/${me.id}.png`;
+    const up = await sb.storage.from("sigs").upload(path, blob, { contentType: "image/png", upsert: true });
+    if (up.error) return toast(up.error.message);
+    const { error } = await sb.from("profiles").update({ signature_path: path }).eq("id", me.id);
+    if (error) return toast(error.message);
+    toast("Signature saved ✓"); await loadContext(); viewMe();
+  };
+}
+
+/* ================= verify (public) ================= */
+async function viewVerify(q) {
+  app.innerHTML = `<h1>Verify a document</h1><div class="card">
+    <p class="small">Drop a PDF sealed by KKL Approvals (or any document attached to a request). The file is hashed on this device — it is not uploaded.</p>
+    <div class="filedrop" id="vdrop">Drop the file here or click</div>
+    <input type="file" id="vpick" style="display:none"><div id="vout"></div></div>`;
+  const out = $("#vout");
+  const show = (d) => {
+    if (d.error) return out.innerHTML = `<div class="note bad">${esc(d.error)}</div>`;
+    if (!d.found) return out.innerHTML = `<div class="note bad"><b>No match.</b> ${esc(d.note || "")}</div>`;
+    out.innerHTML = `<div class="note ${d.status === "APPROVED" ? "good" : "bad"}" style="margin-top:14px">
+      <b>${d.matched === "sealed_pdf" ? "Sealed PDF verified — unaltered." : d.matched === "source_document" ? "Matches a source document on record." : "Record found."}</b></div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="small"><b>Ref:</b> ${esc(d.ref)}</div><div class="small"><b>Status:</b> <span class="pill ${STATUS_PILL[d.status] || "p-mute"}">${esc(d.status)}</span></div>
+        <div class="small"><b>Title:</b> ${esc(d.title)}</div><div class="small"><b>Amount:</b> ${fmt$(d.amount, d.currency)}</div>
+        <div class="small"><b>Decided:</b> ${fmtD(d.decided_at)}</div><div class="small"><b>Sealed:</b> ${d.sealed ? "yes" : "no"}</div></div>
+      <h2>Decision trail</h2>${(d.trail || []).map((t) => `<div class="auditrow">${esc(t.action)} — <b>${esc(t.who)}</b> ${esc(t.title || "")} · ${fmtD(t.at)} · ${esc(t.auth || "")}</div>`).join("")}`;
+  };
+  const callVerify = async (body) => {
+    out.innerHTML = `<div class="small" style="margin-top:10px">Checking…</div>`;
+    const { data, error } = await sb.functions.invoke("verify", { body });
+    show(error ? { error: error.message } : data);
+  };
+  const vd = $("#vdrop"), vp = $("#vpick");
+  vd.onclick = () => vp.click();
+  vd.ondragover = (e) => { e.preventDefault(); vd.classList.add("on"); };
+  vd.ondragleave = () => vd.classList.remove("on");
+  const handle = async (f) => callVerify({ sha256: await sha256(await f.arrayBuffer()) });
+  vd.ondrop = (e) => { e.preventDefault(); vd.classList.remove("on"); if (e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]); };
+  vp.onchange = () => vp.files[0] && handle(vp.files[0]);
+  if (q.get("r") && q.get("t")) callVerify({ ref: q.get("r"), token: q.get("t") });
+}
+
+/* ================= admin ================= */
+async function viewAdmin() {
+  if (me.role !== "admin") return app.innerHTML = `<div class="empty">Admins only.</div>`;
+  app.innerHTML = `<h1>Admin</h1>
+  <h2>Team</h2><div class="card"><div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Title</th><th>Role</th><th>Active</th></tr></thead><tbody>
+    ${roster.map((p) => `<tr><td>${esc(p.display_name || "")}</td><td class="small">${esc(p.email || "")}</td><td class="small">${esc(p.title || "")}</td>
+      <td><select data-role="${p.id}" ${p.id === me.id ? "disabled" : ""}>${["staff", "finance", "admin"].map((x) => `<option ${x === p.role ? "selected" : ""}>${x}</option>`).join("")}</select></td>
+      <td><input type="checkbox" data-active="${p.id}" ${p.active ? "checked" : ""} ${p.id === me.id ? "disabled" : ""} style="width:auto"></td></tr>`).join("")}
+  </tbody></table></div>
+  <h2>Invite</h2><div class="grid2">
+    <div><label>Email</label><input id="i_email" type="email"></div>
+    <div><label>Name</label><input id="i_name"></div>
+    <div><label>Title</label><input id="i_title" placeholder="e.g. Project Manager"></div>
+    <div><label>Role</label><select id="i_role"><option>staff</option><option>finance</option><option>admin</option></select></div></div>
+  <div class="btnrow"><button class="btn" id="invite">Send invite</button></div>
+  <p class="small">Invites use Supabase's built-in mailer (~2/hour on free tier) until custom SMTP is configured in the dashboard.</p></div>
+
+  <h2>Authority matrix</h2><div class="card">
+    <p class="small">Bands per type; last band open-ended. Each stage: rule ALL / ANY / QUORUM and steps by email (type DECIDE / REVIEW / ACK / WATCH). Approvers must have active accounts.</p>
+    <textarea class="json" id="mtx">${esc(JSON.stringify(settings.matrix || {}, null, 2))}</textarea>
+    <div class="grid2"><div><label>App URL (for QR / invite links)</label><input id="s_url" value="${esc(settings.app_url || "")}"></div>
+    <div><label>Over-budget bump threshold (%)</label><input id="s_pct" type="number" value="${esc(settings.overbudget_pct ?? 10)}"></div></div>
+    <div class="btnrow"><button class="btn" id="msave">Save settings</button></div></div>
+
+  <h2>Integrity &amp; archive</h2><div class="card"><div class="btnrow">
+    <button class="btn ghost" id="chain">Verify audit chain</button>
+    <button class="btn ghost" id="export">Export archive (JSON)</button></div>
+    <div id="chainout"></div>
+    <p class="small">Run the export regularly and drop it in OneDrive — the free tier has no point-in-time recovery, so this file is the off-platform copy of the record.</p></div>`;
+
+  document.querySelectorAll("[data-role]").forEach((s) => s.onchange = async () => {
+    const { data, error } = await sb.functions.invoke("team", { body: { set_role: { id: s.dataset.role, role: s.value } } });
+    toast(error || data?.error ? "Failed: " + (error?.message || data.error) : "Role updated");
+  });
+  document.querySelectorAll("[data-active]").forEach((c) => c.onchange = async () => {
+    const p = roster.find((x) => x.id === c.dataset.active);
+    const { data, error } = await sb.functions.invoke("team", { body: { set_role: { id: c.dataset.active, role: p.role, active: c.checked } } });
+    toast(error || data?.error ? "Failed: " + (error?.message || data.error) : c.checked ? "Activated" : "Deactivated — they can no longer be routed to or sign in usefully");
+  });
+  $("#invite").onclick = async () => {
+    const { data, error } = await sb.functions.invoke("team", { body: { email: $("#i_email").value, display_name: $("#i_name").value, title: $("#i_title").value, role: $("#i_role").value } });
+    if (error || data?.error) return toast("Invite failed: " + (error?.message || data.error));
+    toast("Invited ✓"); await loadContext(); viewAdmin();
+  };
+  $("#msave").onclick = async () => {
+    let m;
+    try { m = JSON.parse($("#mtx").value); } catch (e) { return toast("Matrix is not valid JSON: " + e.message); }
+    for (const t of ["award", "invoice"]) if (!m[t] || !Array.isArray(m[t].bands) || !m[t].bands.length) return toast(`Matrix needs ${t}.bands`);
+    const rows = [["matrix", m], ["app_url", $("#s_url").value.trim()], ["overbudget_pct", Number($("#s_pct").value || 10)]];
+    for (const [key, value] of rows) {
+      const { error } = await sb.from("settings").upsert({ key, value, updated_by: me.id });
+      if (error) return toast(error.message);
+    }
+    toast("Settings saved ✓"); await loadContext();
+  };
+  $("#chain").onclick = async () => {
+    const { data, error } = await sb.rpc("verify_chain");
+    $("#chainout").innerHTML = error ? `<div class="note bad">${esc(error.message)}</div>`
+      : data.ok ? `<div class="note good"><b>Chain intact.</b> ${data.checked} events verified · head <span class="mono">${String(data.head).slice(0, 20)}…</span></div>`
+      : `<div class="note bad"><b>CHAIN BROKEN at event #${data.break_at_seq}</b> — ${data.checked} events verified before the break. Investigate immediately.</div>`;
+  };
+  $("#export").onclick = async () => {
+    toast("Building archive…");
+    const [reqs, steps, decs, docs] = await Promise.all([
+      sb.from("requests").select("*"), sb.from("request_steps").select("*"),
+      sb.from("decisions").select("*"), sb.from("documents").select("*"),
+    ]);
+    const audit = [];
+    for (const r of reqs.data || []) {
+      const { data } = await sb.rpc("request_audit", { p_request: r.id });
+      audit.push(...(data || []));
+    }
+    const payload = { exported_at: new Date().toISOString(), by: me.email,
+      requests: reqs.data, steps: steps.data, decisions: decs.data, documents: docs.data, audit };
+    const blob = new Blob([JSON.stringify(payload, null, 1)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `kkl-approvals-archive-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+  };
+}
+
+boot();
+</script>
+</body>
+</html>

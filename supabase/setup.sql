@@ -161,7 +161,7 @@ begin
 end $$;
 
 create or replace function public.audit_chain() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = public, extensions as $$
 declare v_prev text;
 begin
   select hash into v_prev from public.audit_events
@@ -389,7 +389,7 @@ create trigger apply_decision_t after insert on public.decisions
 -- Adding a document to a PENDING request changes the manifest, which
 -- VOIDS completed approvals up to the current stage and reopens them.
 create or replace function public.documents_after() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare v_req public.requests; v_manifest text; v_first int;
 begin
   perform set_config('app.internal', '1', true);
@@ -435,7 +435,7 @@ revoke update, delete on public.documents from anon, authenticated;
 -- Last band may omit "max" (open-ended). An award over its budget
 -- allowance by more than settings.overbudget_pct bumps one band up.
 create or replace function public.submit_request(p_id uuid) returns jsonb
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_req    public.requests;
   v_matrix jsonb; v_bands jsonb; v_band jsonb; v_stage jsonb; v_stepj jsonb;
@@ -579,7 +579,7 @@ $$;
 
 -- full-chain verification: recompute every hash, report first break
 create or replace function public.verify_chain() returns jsonb
-language plpgsql stable security definer set search_path = public as $$
+language plpgsql stable security definer set search_path = public, extensions as $$
 declare r record; v_prev text := 'GENESIS'; v_calc text; v_n int := 0;
 begin
   if public.my_role() not in ('admin','finance') then raise exception 'admin/finance only'; end if;

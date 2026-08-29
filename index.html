@@ -116,7 +116,10 @@ textarea.json{font-family:Consolas,ui-monospace,monospace;font-size:12px;min-hei
 /* ================= config =================
    Fill DEFAULT_SB after the Supabase project is created, or configure a
    device once via localStorage key kklapv-sb = {"url":"...","anon":"..."} */
-const DEFAULT_SB = { url: "", anon: "" };
+const DEFAULT_SB = {
+  url: "https://zrxhfyepurgmpxqvryzv.supabase.co",
+  anon: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeGhmeWVwdXJnbXB4cXZyeXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NzM4OTEsImV4cCI6MjEwMzQ0OTg5MX0.uGPPsVxsa5S3RPUBJ1x1R0YICnSdd8dMYHqSfc5cGl8",
+};
 let SB = DEFAULT_SB;
 try { const o = JSON.parse(localStorage.getItem("kklapv-sb") || "null"); if (o && o.url) SB = o; } catch (e) {}
 

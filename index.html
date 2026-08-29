@@ -275,8 +275,79 @@ async function viewQueue() {
 }
 
 /* ================= lists ================= */
+async function ensureJSZip() {
+  if (window.JSZip) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+    s.onload = res; s.onerror = () => rej(new Error("could not load zip library"));
+    document.head.appendChild(s);
+  });
+}
+const csvCell = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+async function accountsPack(month) {
+  // month: "" = everything, or "2026-08"
+  toast("Building accounts pack…");
+  let q = sb.from("requests").select("*").eq("status", "APPROVED").order("decided_at");
+  if (month) {
+    const [y, m] = month.split("-").map(Number);
+    const from = new Date(Date.UTC(y, m - 1, 1)).toISOString();
+    const to = new Date(Date.UTC(y, m, 1)).toISOString();
+    q = q.gte("decided_at", from).lt("decided_at", to);
+  }
+  const { data: reqs, error } = await q;
+  if (error) return toast(error.message);
+  if (!reqs.length) return toast("No approved requests" + (month ? " in " + month : "") + " yet");
+  const ids = reqs.map((r) => r.id);
+  const { data: decs } = await sb.from("decisions").select("request_id,actor,action,created_at")
+    .in("request_id", ids).eq("action", "APPROVE").order("created_at");
+  const byReq = {};
+  (decs || []).forEach((d) => (byReq[d.request_id] = byReq[d.request_id] || []).push(d));
+  const refOf = (id) => (reqs.find((r) => r.id === id) || {}).ref || "";
+  await ensureJSZip();
+  const zip = new JSZip();
+  const rows = [["Ref", "Type", "Title", "Supplier", "Project", "Amount", "Currency",
+    "Submitted", "Approved", "Approved by", "Invoice no", "Against award",
+    "Sealed file", "Sealed SHA-256", "Verify link"].join(",")];
+  let sealedCount = 0;
+  for (const r of reqs) {
+    let sealedName = "";
+    if (r.sealed_path) {
+      const { data: su, error: se } = await sb.storage.from("sealed").createSignedUrl(r.sealed_path, 600);
+      if (!se) {
+        const blob = await (await fetch(su.signedUrl)).blob();
+        sealedName = r.sealed_path.split("/").pop();
+        zip.file(sealedName, blob);
+        sealedCount++;
+      }
+    }
+    rows.push([r.ref, TYPE_NAME[r.type], r.title, r.supplier, r.project,
+      Number(r.amount).toFixed(2), r.currency,
+      fmtD(r.submitted_at), fmtD(r.decided_at),
+      (byReq[r.id] || []).map((d) => whoName(d.actor)).join("; "),
+      r.form?.invoice_no || "", r.award_id ? refOf(r.award_id) : "",
+      sealedName || "NOT SEALED", r.sealed_hash || "",
+      (settings.app_url ? settings.app_url.replace(/\/$/, "") + "/#/verify?r=" + encodeURIComponent(r.ref) + "&t=" + r.verify_token : ""),
+    ].map(csvCell).join(","));
+  }
+  zip.file("register.csv", "﻿" + rows.join("\r\n"));
+  const blob = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `KKL-Approvals-pack${month ? "-" + month : ""}-${new Date().toISOString().slice(0, 10)}.zip`;
+  a.click();
+  toast(`Pack ready: ${reqs.length} approvals, ${sealedCount} sealed PDFs + register.csv`);
+}
 async function viewList(kind) {
-  app.innerHTML = `<h1>${kind === "mine" ? "My requests" : "All requests"}</h1><div id="list" class="empty">Loading…</div>`;
+  const canPack = kind === "all" && (me.role === "finance" || me.role === "admin");
+  app.innerHTML = `<h1>${kind === "mine" ? "My requests" : "All requests"}</h1>
+    ${canPack ? `<div class="card"><div class="rowline">
+      <span class="small"><b>Accounts pack</b> — approved requests as sealed PDFs + Excel register:</span>
+      <input type="month" id="packmonth" style="width:auto">
+      <button class="btn ghost" id="packgo">Download ZIP</button>
+      <span class="small">(leave month blank for everything)</span></div></div>` : ""}
+    <div id="list" class="empty">Loading…</div>`;
+  if (canPack) $("#packgo").onclick = () => accountsPack($("#packmonth").value);
   let q = sb.from("requests").select("*").order("created_at", { ascending: false }).limit(200);
   if (kind === "mine") q = q.eq("requester", me.id);
   const { data, error } = await q;

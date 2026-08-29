@@ -95,6 +95,11 @@ td{padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
 canvas.sig{background:#fff;border:1px solid var(--rule2);border-radius:4px;touch-action:none;width:100%;max-width:420px;height:150px}
 .qrow{display:grid;grid-template-columns:2fr 1fr 2fr 34px;gap:6px;margin-bottom:6px}
 textarea.json{font-family:Consolas,ui-monospace,monospace;font-size:12px;min-height:260px}
+.band{border:1px solid var(--rule2);border-left:3px solid var(--stamp);border-radius:4px;margin:10px 0;padding:12px;background:var(--card)}
+.stg{border-top:1px dashed var(--rule);margin-top:10px;padding-top:10px}
+.stg .steprow{display:flex;gap:6px;margin:6px 0 0 36px;align-items:center;flex-wrap:wrap}
+.stg .steprow select{width:auto;min-width:150px}
+.minibtn{background:var(--sunk);color:var(--ink2);border:1px solid var(--rule2);border-radius:3px;padding:3px 9px;font-size:12px}
 .auditrow{font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--rule)}
 .auditrow:last-child{border-bottom:0}
 @media print{#bar,.btnrow{display:none}}
@@ -689,11 +694,13 @@ async function viewAdmin() {
   <p class="small">Invites use Supabase's built-in mailer (~2/hour on free tier) until custom SMTP is configured in the dashboard.</p></div>
 
   <h2>Authority matrix</h2><div class="card">
-    <p class="small">Bands per type; last band open-ended. Each stage: rule ALL / ANY / QUORUM and steps by email (type DECIDE / REVIEW / ACK / WATCH). Approvers must have active accounts.</p>
-    <textarea class="json" id="mtx">${esc(JSON.stringify(settings.matrix || {}, null, 2))}</textarea>
-    <div class="grid2"><div><label>App URL (for QR / invite links)</label><input id="s_url" value="${esc(settings.app_url || "")}"></div>
+    <p class="small">Who signs what, by value. A request falls into the first band whose limit covers its amount, then walks the stages in order. Within a stage, the rule says how many of the named people must approve. People must be invited (Team, above) before they can be routed to.</p>
+    <div id="mtxed"></div>
+    <div class="grid2" style="margin-top:16px"><div><label>App URL (for QR / invite links)</label><input id="s_url" value="${esc(settings.app_url || "")}"></div>
     <div><label>Over-budget bump threshold (%)</label><input id="s_pct" type="number" value="${esc(settings.overbudget_pct ?? 10)}"></div></div>
-    <div class="btnrow"><button class="btn" id="msave">Save settings</button></div></div>
+    <div class="btnrow"><button class="btn" id="msave">Save settings</button></div>
+    <details style="margin-top:10px"><summary class="small">Advanced: raw JSON (read-only)</summary>
+      <textarea class="json" id="mtx" readonly></textarea></details></div>
 
   <h2>Integrity &amp; archive</h2><div class="card"><div class="btnrow">
     <button class="btn ghost" id="chain">Verify audit chain</button>
@@ -715,10 +722,92 @@ async function viewAdmin() {
     if (error || data?.error) return toast("Invite failed: " + (error?.message || data.error));
     toast("Invited ✓"); await loadContext(); viewAdmin();
   };
+  /* ---- visual matrix editor ---- */
+  const MTX = JSON.parse(JSON.stringify(settings.matrix || {}));
+  for (const t of ["award", "invoice"]) { MTX[t] = MTX[t] || {}; MTX[t].bands = MTX[t].bands || []; }
+  const people = roster.filter((p) => p.active !== false && p.email);
+  const personOpts = (sel) => {
+    const known = people.map((p) => `<option value="${esc(p.email)}" ${String(sel || "").toLowerCase() === p.email.toLowerCase() ? "selected" : ""}>${esc(p.display_name || p.email)}${p.title ? " — " + esc(p.title) : ""}</option>`).join("");
+    const missing = sel && !people.some((p) => p.email.toLowerCase() === String(sel).toLowerCase())
+      ? `<option value="${esc(sel)}" selected>${esc(sel)} — not invited yet</option>` : "";
+    return `<option value="">— choose person —</option>` + known + missing;
+  };
+  function drawMatrix() {
+    $("#mtxed").innerHTML = ["award", "invoice"].map((t) => {
+      const bands = MTX[t].bands;
+      return `<h3 style="margin:18px 0 4px;font-size:15px">${t === "award" ? "Awards" : "Invoices"}</h3>` +
+        (bands.length ? "" : `<p class="small">No bands yet — add one.</p>`) +
+        bands.map((b, bi) => `<div class="band">
+          <div class="rowline" style="justify-content:space-between">
+            <span><b>Band ${String.fromCharCode(65 + bi)}</b>
+              <span class="small"> up to S$ </span><input data-f="max" data-t="${t}" data-b="${bi}" type="number" min="0"
+                style="width:130px;display:inline-block;padding:4px 8px" value="${b.max ?? ""}" placeholder="no limit">
+              ${b.max == null ? '<span class="pill p-mute">open-ended</span>' : ""}</span>
+            <button class="minibtn" data-a="delband" data-t="${t}" data-b="${bi}">remove band</button></div>
+          ${(b.stages || []).map((st, si) => `<div class="stg">
+            <div class="rowline"><span class="stgn">${si + 1}</span>
+              <select data-f="rule" data-t="${t}" data-b="${bi}" data-s="${si}" style="width:auto">
+                ${["ANY", "ALL", "QUORUM"].map((x) => `<option ${String(st.rule || "ALL").toUpperCase() === x ? "selected" : ""}>${x}</option>`).join("")}</select>
+              ${String(st.rule).toUpperCase() === "QUORUM" ? `<span class="small">need</span><input data-f="quorum" data-t="${t}" data-b="${bi}" data-s="${si}" type="number" min="1" style="width:60px;display:inline-block;padding:4px 8px" value="${st.quorum ?? 2}">` : ""}
+              <span class="small">${String(st.rule).toUpperCase() === "ANY" ? "first to respond decides" : String(st.rule).toUpperCase() === "ALL" ? "everyone must approve" : "of the named people"}</span>
+              <button class="minibtn" data-a="delstg" data-t="${t}" data-b="${bi}" data-s="${si}">remove stage</button></div>
+            ${(st.steps || []).map((sp, pi) => `<div class="steprow">
+              <select data-f="email" data-t="${t}" data-b="${bi}" data-s="${si}" data-p="${pi}">${personOpts(sp.email)}</select>
+              <select data-f="type" data-t="${t}" data-b="${bi}" data-s="${si}" data-p="${pi}" title="Decide blocks; Review must comment; Acknowledge confirms receipt; Watch is read-only">
+                ${[["DECIDE", "Decide"], ["REVIEW", "Review"], ["ACK", "Acknowledge"], ["WATCH", "Watch"]].map(([v, l]) => `<option value="${v}" ${String(sp.type || "DECIDE").toUpperCase() === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+              <button class="minibtn" data-a="delstep" data-t="${t}" data-b="${bi}" data-s="${si}" data-p="${pi}">×</button></div>`).join("")}
+            <div class="steprow"><button class="minibtn" data-a="addstep" data-t="${t}" data-b="${bi}" data-s="${si}">+ person</button></div>
+          </div>`).join("")}
+          <div class="btnrow"><button class="minibtn" data-a="addstg" data-t="${t}" data-b="${bi}">+ stage</button></div>
+        </div>`).join("") +
+        `<div class="btnrow"><button class="minibtn" data-a="addband" data-t="${t}">+ band</button></div>`;
+    }).join("");
+    $("#mtx").value = JSON.stringify(MTX, null, 2);
+  }
+  $("#mtxed").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-a]"); if (!b) return;
+    const { a, t } = b.dataset, bi = +b.dataset.b, si = +b.dataset.s, pi = +b.dataset.p;
+    const bands = MTX[t].bands;
+    if (a === "addband") bands.push({ max: 5000, stages: [{ rule: "ANY", steps: [{ email: "", type: "DECIDE" }] }] });
+    if (a === "delband" && confirm("Remove this band?")) bands.splice(bi, 1);
+    if (a === "addstg") bands[bi].stages.push({ rule: "ANY", steps: [{ email: "", type: "DECIDE" }] });
+    if (a === "delstg") bands[bi].stages.splice(si, 1);
+    if (a === "addstep") bands[bi].stages[si].steps.push({ email: "", type: "DECIDE" });
+    if (a === "delstep") bands[bi].stages[si].steps.splice(pi, 1);
+    drawMatrix();
+  });
+  $("#mtxed").addEventListener("change", (e) => {
+    const el = e.target.closest("[data-f]"); if (!el) return;
+    const { f, t } = el.dataset, bi = +el.dataset.b, si = +el.dataset.s, pi = +el.dataset.p;
+    const bands = MTX[t].bands;
+    if (f === "max") { const v = el.value.trim(); if (v === "") delete bands[bi].max; else bands[bi].max = Number(v); drawMatrix(); }
+    if (f === "rule") { bands[bi].stages[si].rule = el.value; if (el.value !== "QUORUM") delete bands[bi].stages[si].quorum; drawMatrix(); }
+    if (f === "quorum") bands[bi].stages[si].quorum = Math.max(1, Number(el.value || 2));
+    if (f === "email") bands[bi].stages[si].steps[pi].email = el.value;
+    if (f === "type") bands[bi].stages[si].steps[pi].type = el.value;
+  });
+  drawMatrix();
+
   $("#msave").onclick = async () => {
-    let m;
-    try { m = JSON.parse($("#mtx").value); } catch (e) { return toast("Matrix is not valid JSON: " + e.message); }
-    for (const t of ["award", "invoice"]) if (!m[t] || !Array.isArray(m[t].bands) || !m[t].bands.length) return toast(`Matrix needs ${t}.bands`);
+    const m = {};
+    for (const t of ["award", "invoice"]) {
+      const bands = MTX[t].bands;
+      if (!bands.length) return toast(`${t === "award" ? "Awards" : "Invoices"}: add at least one band`);
+      const open = bands.filter((b) => b.max == null);
+      if (open.length > 1) return toast(`${t}: only one open-ended band allowed`);
+      for (const [bi, b] of bands.entries()) {
+        if (!(b.stages || []).length) return toast(`${t} band ${String.fromCharCode(65 + bi)}: add at least one stage`);
+        for (const [si, st] of b.stages.entries()) {
+          const steps = (st.steps || []).filter((s) => s.email);
+          if (!steps.length) return toast(`${t} band ${String.fromCharCode(65 + bi)} stage ${si + 1}: choose at least one person`);
+          st.steps = steps;
+          if (String(st.rule).toUpperCase() === "QUORUM" && (st.quorum ?? 0) > steps.filter((s) => (s.type || "DECIDE") === "DECIDE").length)
+            return toast(`${t} band ${String.fromCharCode(65 + bi)} stage ${si + 1}: quorum is larger than the number of deciders`);
+        }
+      }
+      // bounded bands ascending, open-ended last
+      m[t] = { bands: bands.filter((b) => b.max != null).sort((a, b) => a.max - b.max).concat(open) };
+    }
     const rows = [["matrix", m], ["app_url", $("#s_url").value.trim()], ["overbudget_pct", Number($("#s_pct").value || 10)]];
     for (const [key, value] of rows) {
       const { error } = await sb.from("settings").upsert({ key, value, updated_by: me.id });
